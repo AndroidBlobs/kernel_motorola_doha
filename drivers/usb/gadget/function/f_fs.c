@@ -1084,19 +1084,40 @@ static ssize_t ffs_epfile_io(struct file *file, struct ffs_io_data *io_data)
 			 * status. usb_ep_dequeue API should guarantee no race
 			 * condition with req->complete callback.
 			 */
-			usb_ep_dequeue(ep->ep, req);
-			interrupted = ep->status < 0;
+			spin_lock_irq(&epfile->ffs->eps_lock);
+			interrupted = true;
+			/*
+			 * While we were acquiring lock endpoint got
+			 * disabled (disconnect) or changed
+			 (composition switch) ?
+			 */
+			if (epfile->ep == ep) {
+				usb_ep_dequeue(ep->ep, req);
+				interrupted = ep->status < 0;
+			}
+			spin_unlock_irq(&epfile->ffs->eps_lock);
 		}
 
 		ffs_log("ep status %d for req %pK", ep->status, req);
 
-		if (interrupted)
+		if (interrupted) {
 			ret = -EINTR;
-		else if (io_data->read && ep->status > 0)
+			goto error_mutex;
+		}
+
+		ret = -ENODEV;
+		spin_lock_irq(&epfile->ffs->eps_lock);
+		/*
+		 * While we were acquiring lock endpoint got
+		 * disabled (disconnect) or changed
+		 * (composition switch) ?
+		 */
+		if (epfile->ep == ep)
+			ret = ep->status;
+		spin_unlock_irq(&epfile->ffs->eps_lock);
+		if (io_data->read && ret > 0)
 			ret = __ffs_epfile_read_data(epfile, data, ep->status,
 						     &io_data->data);
-		else
-			ret = ep->status;
 		goto error_mutex;
 	} else if (!(req = usb_ep_alloc_request(ep->ep, GFP_ATOMIC))) {
 		ret = -ENOMEM;
@@ -1647,6 +1668,10 @@ ffs_fs_mount(struct file_system_type *t, int flags,
 	ffs = ffs_data_new(dev_name);
 	if (unlikely(!ffs))
 		return ERR_PTR(-ENOMEM);
+
+	if (IS_ERR(ffs))
+		return ERR_PTR(-EBUSY);
+
 	ffs->file_perms = data.perms;
 	ffs->no_disconnect = data.no_disconnect;
 
@@ -3753,6 +3778,7 @@ static void ffs_func_unbind(struct usb_configuration *c,
 		if (ep->ep && ep->req)
 			usb_ep_free_request(ep->ep, ep->req);
 		ep->req = NULL;
+		ep->ep = NULL;
 		++ep;
 	}
 	spin_unlock_irqrestore(&func->ffs->eps_lock, flags);
