@@ -92,8 +92,10 @@ enum print_reason {
 
 #define SDP_100_MA			100000
 #define SDP_CURRENT_UA			500000
+#define OCP_CURRENT_UA			1000000
 #define CDP_CURRENT_UA			1500000
-#define DCP_CURRENT_UA			1500000
+#define DCP_CURRENT_UA			2000000
+#define HVDCP_2_CURRENT_UA		1500000
 #define HVDCP_CURRENT_UA		3000000
 #define TYPEC_DEFAULT_CURRENT_UA	900000
 #define TYPEC_MEDIUM_CURRENT_UA		1500000
@@ -126,6 +128,7 @@ enum {
 	WEAK_ADAPTER_WA			= BIT(2),
 	USBIN_OV_WA			= BIT(3),
 	CHG_TERMINATION_WA		= BIT(4),
+	USBIN_ADC_WA			= BIT(5),
 };
 
 enum jeita_cfg_stat {
@@ -375,6 +378,7 @@ struct smb_charger {
 	struct mutex		smb_lock;
 	struct mutex		ps_change_lock;
 	struct mutex		dr_lock;
+	struct mutex		adc_lock;
 
 	/* power supplies */
 	struct power_supply		*batt_psy;
@@ -475,6 +479,7 @@ struct smb_charger {
 	int			default_icl_ua;
 	int			otg_cl_ua;
 	bool			uusb_apsd_rerun_done;
+	bool			typec_apsd_rerun_done;
 	bool			typec_present;
 	int			fake_input_current_limited;
 	int			typec_mode;
