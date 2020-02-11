@@ -37,6 +37,9 @@
 
 #define DSI_MODE_MAX 5
 
+#define DSI_PANEL_MAX_PANEL_LEN	128
+#define MAX_PARAM_NAME 10
+
 enum dsi_panel_rotation {
 	DSI_PANEL_ROTATE_NONE = 0,
 	DSI_PANEL_ROTATE_HV_FLIP,
@@ -102,6 +105,8 @@ struct dsi_backlight_config {
 	enum dsi_backlight_type type;
 	enum bl_update_flag bl_update;
 
+	bool bl_2bytes_0xff0f_enable;
+	bool bl_2bytes_enable;
 	u32 bl_min_level;
 	u32 bl_max_level;
 	u32 brightness_max_level;
@@ -111,6 +116,7 @@ struct dsi_backlight_config {
 	u32 bl_scale_ad;
 
 	int en_gpio;
+	int hbm_en_gpio;
 	/* PWM params */
 	struct pwm_device *pwm_bl;
 	bool pwm_enabled;
@@ -126,10 +132,19 @@ struct dsi_reset_seq {
 	u32 sleep_ms;
 };
 
-struct dsi_panel_reset_config {
-	struct dsi_reset_seq *sequence;
-	u32 count;
+struct dsi_tp_reset_seq {
+	u32 tp_level;
+	u32 tp_sleep_ms;
+};
 
+struct dsi_panel_reset_config {
+	bool tp_reset_enabled;
+	struct dsi_reset_seq *sequence;
+	struct dsi_tp_reset_seq *tp_sequence;
+	u32 count;
+	u32 tp_count;
+
+	int tp_reset_gpio;
 	int reset_gpio;
 	int disp_en_gpio;
 	int lcd_mode_sel_gpio;
@@ -156,6 +171,47 @@ struct drm_panel_esd_config {
 	u8 *return_buf;
 	u8 *status_buf;
 	u32 groups;
+};
+
+enum panel_idx {
+	MAIN_IDX = 0,
+	SEC_INX,
+	PANEL_IDX_MAX,
+};
+
+enum acl_state {
+	ACL_OFF_STATE = 0,
+	ACL_ON_STATE,
+	ACL_STATE_NUM,
+};
+
+enum cabc_state {
+	CABC_UI_STATE,
+	CABC_MV_STATE,
+	CABC_DIS_STATE,
+	CABC_STATE_NUM,
+};
+
+enum hbm_state {
+	HBM_OFF_STATE = 0,
+	HBM_ON_STATE,
+	HBM_FOD_ON_STATE,
+	HBM_STATE_NUM
+};
+
+struct panel_param_val_map {
+	int state;
+	enum dsi_cmd_set_type type;
+	struct dsi_panel_cmd_set *cmds;
+};
+
+struct panel_param {
+	const char *param_name;
+	struct panel_param_val_map *val_map;
+	u16 val_max;
+	const u16 default_value;
+	u16 value;
+	bool is_supported;
 };
 
 struct dsi_panel {
@@ -204,6 +260,21 @@ struct dsi_panel {
 	enum dsi_dms_mode dms_mode;
 
 	bool sync_broadcast_en;
+
+	bool esd_utag_enable;
+	u64 panel_id;
+	u64 panel_ver;
+	char panel_name[DSI_PANEL_MAX_PANEL_LEN];
+
+	u32 disp_on_chk_val;
+	bool no_panel_on_read_support;
+
+	bool panel_hbm_dim_off;
+	bool panel_hbm_fod;
+
+	struct panel_param *param_cmds;
+	bool lcd_not_sleep;
+	bool tp_state_check;
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)
@@ -269,6 +340,8 @@ int dsi_panel_set_lp2(struct dsi_panel *panel);
 
 int dsi_panel_set_nolp(struct dsi_panel *panel);
 
+int dsi_panel_set_tearing(struct dsi_panel *panel, bool enable);
+
 int dsi_panel_prepare(struct dsi_panel *panel);
 
 int dsi_panel_enable(struct dsi_panel *panel);
@@ -309,6 +382,16 @@ struct dsi_panel *dsi_panel_ext_bridge_get(struct device *parent,
 
 int dsi_panel_parse_esd_reg_read_configs(struct dsi_panel *panel);
 
+int dsi_panel_parse_panel_cfg(struct dsi_panel *panel, bool is_primary);
+
 void dsi_panel_ext_bridge_put(struct dsi_panel *panel);
+
+int dsi_panel_set_param(struct dsi_panel *panel,
+			struct msm_param_info *param_info);
+
+int dsi_panel_get_elvss_data(struct dsi_panel *panel);
+int dsi_panel_get_elvss_data_1(struct dsi_panel *panel);
+int dsi_panel_set_elvss_dim_off(struct dsi_panel *panel, u8 val);
+int dsi_panel_parse_elvss_config(struct dsi_panel *panel, u8 elv_vl);
 
 #endif /* _DSI_PANEL_H_ */

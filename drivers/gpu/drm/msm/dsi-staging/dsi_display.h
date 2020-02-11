@@ -28,6 +28,8 @@
 #include "dsi_ctrl.h"
 #include "dsi_phy.h"
 #include "dsi_panel.h"
+#include "sde_connector.h"
+#include "sde_motUtil.h"
 
 #define MAX_DSI_CTRLS_PER_DISPLAY             2
 #define DSI_CLIENT_NAME_SIZE		20
@@ -542,6 +544,8 @@ int dsi_post_clkoff_cb(void *priv, enum dsi_clk_type clk_type,
 		enum dsi_lclk_type l_type,
 		enum dsi_clk_state curr_state);
 
+int dsi_display_set_param(void *display, struct msm_param_info *param_info);
+
 /**
  * dsi_post_clkon_cb() - Callback after clock is turned on
  * @priv: private data pointer.
@@ -608,6 +612,7 @@ void dsi_display_enable_event(struct drm_connector *connector,
 int dsi_display_set_backlight(struct drm_connector *connector,
 		void *display, u32 bl_lvl);
 
+int dsi_display_set_tearing(void *display, bool enable);
 /**
  * dsi_display_check_status() - check if panel is dead or alive
  * @connector:          Pointer to drm connector structure
@@ -627,6 +632,25 @@ int dsi_display_check_status(struct drm_connector *connector, void *display,
 int dsi_display_cmd_transfer(struct drm_connector *connector,
 		void *display, const char *cmd_buffer,
 		u32 cmd_buf_len);
+
+/**
+ * dsi_display_motUtil_transfer() - Convert motUtil data and transfer command
+ *						to the panel
+ * @display:            Handle to display.
+ * @cmd_buf:            Command buffer
+ * @cmd_buf_len:        Command buffer length in bytes
+ * @motUtil_data:	motUtil data information
+ */
+int dsi_display_motUtil_transfer(void *display, const char *cmd_buf,
+		u32 cmd_buf_len, struct motUtil *motUtil_data);
+
+
+/**
+ * dsi_display_force_esd_disable() - check if ESD UTAG is forced to disable ESD
+ * @display:            Handle to display.
+ */
+bool dsi_display_force_esd_disable(void *display);
+
 
 /**
  * dsi_display_soft_reset() - perform a soft reset on DSI controller
