@@ -1,3 +1,48 @@
+# Only include Motorola DTBs
+ifeq ($(CONFIG_MMI_DEVICE_DTBS),y)
+ifneq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
+	$(error Moto DT w/o overlay is undefined!!!)
+endif
+
+# Add 1k of padding to the DTBs to allow for environment variables
+# to be runtime added by the bootloader (i.e. /chosen properties)
+DTC_FLAGS += -p 1024
+
+# Motorola Device Trees
+
+#CONFIG_DOHA_DTB
+dtbo-$(CONFIG_DOHA_DTB) += \
+	trinket-doha-evt1-overlay.dtbo \
+	trinket-doha-evt2-overlay.dtbo \
+	trinket-doha-dvt2-overlay.dtbo
+
+dtbo-$(CONFIG_ROMA_DTB) += \
+	trinket-roma-evb-overlay.dtbo \
+	trinket-roma-evt1-overlay.dtbo \
+	trinket-roma-evt2-overlay.dtbo
+
+dtbo-$(CONFIG_SOFIA_DTB) += \
+	trinket-sofia-evb1-overlay.dtbo \
+	trinket-sofia-evt1-overlay.dtbo
+
+dtbo-$(CONFIG_SOFIAP_DTB) += \
+	trinket-sofiap-evb-overlay.dtbo \
+	trinket-sofiap-evt1-overlay.dtbo
+
+trinket-doha-evt1-overlay.dtbo-base :=  trinket-doha-base.dtb
+trinket-doha-evt2-overlay.dtbo-base :=  trinket-doha-base.dtb
+trinket-doha-dvt2-overlay.dtbo-base :=  trinket-doha-base.dtb
+
+trinket-roma-evb-overlay.dtbo-base :=  trinket-roma-base.dtb
+trinket-roma-evt1-overlay.dtbo-base :=  trinket-roma-base.dtb
+trinket-roma-evt2-overlay.dtbo-base :=  trinket-roma-base.dtb
+
+trinket-sofia-evb1-overlay.dtbo-base :=  trinket-sofia-base.dtb
+trinket-sofia-evt1-overlay.dtbo-base :=  trinket-sofia-base.dtb
+
+trinket-sofiap-evb-overlay.dtbo-base :=  trinket-sofiap-base.dtb
+trinket-sofiap-evt1-overlay.dtbo-base :=  trinket-sofiap-base.dtb
+else
 # SPDX-License-Identifier: GPL-2.0
 dtb-$(CONFIG_ARCH_QCOM)	+= apq8016-sbc.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= apq8096-db820c.dtb
@@ -233,6 +278,7 @@ dtb-$(CONFIG_ARCH_SDXPRAIRIE) += sdxprairie-rumi.dtb \
 	sdxprairie-cdp-256.dtb \
 	sdxprairie-mtp-256.dtb \
 	sdxprairie-mtp-aqc.dtb
+endif # CONFIG_MMI_DEVICE_DTBS
 
 ifeq ($(CONFIG_ARM64),y)
 always		:= $(dtb-y)
